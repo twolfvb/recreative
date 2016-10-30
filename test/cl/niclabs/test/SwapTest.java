@@ -5,7 +5,7 @@ import org.junit.Test;
 import src.cl.niclabs.sorting.Sort;
 
 /**
- * Created by practicasti on 27-10-2016.
+ * Created by twolf on 27-10-2016.
  */
 public class SwapTest extends TestCase{
 
