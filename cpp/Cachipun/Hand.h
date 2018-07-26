@@ -23,116 +23,56 @@ public:
 class Stone : public Hand {
 public:
     Stone() = default;
-    int play(Hand &v){
-        v.playWithStone(*this);
-    }
-    int playWithStone(Stone &v){
-        return 0;
-    }
-    int playWithPaper(Paper &paper){
-        return 1;
-    }
-    int playWithScissor(Scissor &scissor) {
-        return -1;
-    }
-    int playWithSpock(Spock &spock){
-        return 1;
-    }
-    int playWithLizard(Lizard &lizard){
-        return -1;
-    }
+    int play(Hand &v);
+    int playWithStone(Stone &v);
+    int playWithPaper(Paper &paper);
+    int playWithScissor(Scissor &scissor);
+    int playWithSpock(Spock &spock);
+    int playWithLizard(Lizard &lizard);
 };
 
 class Paper : public Hand {
 public:
     Paper() = default;
-    int play(Hand &v){
-        v.playWithPaper(*this);
-    }
-    int playWithStone(Stone &v){
-        return -1;
-    }
-    int playWithPaper(Paper &paper){
-        return 0;
-    }
-    int playWithScissor(Scissor &scissor){
-        return 1;
-    }
-    int playWithSpock(Spock &spock){
-        return -1;
-    }
-    int playWithLizard(Lizard &lizard){
-        return 1;
-    }
+    int play(Hand &v);
+    int playWithStone(Stone &v);
+    int playWithPaper(Paper &paper);
+    int playWithScissor(Scissor &scissor);
+    int playWithSpock(Spock &spock);
+    int playWithLizard(Lizard &lizard);
 };
 
 class Scissor : public Hand {
 public:
     Scissor() = default;
-    int play(Hand &v){
-        v.playWithScissor(*this);
-    }
-    int playWithStone(Stone &v){
-        return 1;
-    }
-    int playWithPaper(Paper &paper){
-        return -1;
-    }
-    int playWithScissor(Scissor &scissor){
-        return 0;
-    }
-    int playWithSpock(Spock &spock){
-        return 1;
-    }
-    int playWithLizard(Lizard &lizard){
-        return -1;
-    }
+    int play(Hand &v);
+    int playWithStone(Stone &v);
+    int playWithPaper(Paper &paper);
+    int playWithScissor(Scissor &scissor);
+    int playWithSpock(Spock &spock);
+    int playWithLizard(Lizard &lizard);
 };
 
 class Spock : public Hand {
 public:
     Spock() = default;
-    int play(Hand &v){
-        v.playWithSpock(*this);
-    }
-    int playWithStone(Stone &v){
-        return -1;
-    }
-    int playWithPaper(Paper &paper){
-        return 1;
-    }
-    int playWithScissor(Scissor &scissor){
-        return -1;
-    }
-    int playWithSpock(Spock &spock){
-        return 0;
-    }
-    int playWithLizard(Lizard &lizard){
-        return 1;
-    }
+    int play(Hand &v);
+    int playWithStone(Stone &v);
+    int playWithPaper(Paper &paper);
+    int playWithScissor(Scissor &scissor);
+    int playWithSpock(Spock &spock);
+    int playWithLizard(Lizard &lizard);
 };
 
 class Lizard: public Hand {
 public:
     Lizard() = default;
-    int play(Hand &v){
-        v.playWithLizard(*this);
-    }
-    int playWithStone(Stone &v){
-        return 1;
-    }
-    int playWithPaper(Paper &paper){
-        return -1;
-    }
-    int playWithScissor(Scissor &scissor){
-        return 1;
-    }
-    int playWithSpock(Spock &spock){
-        return -1;
-    }
-    int playWithLizard(Lizard &lizard){
-        return 0;
-    }
+    int play(Hand &v);
+    int playWithStone(Stone &v);
+    int playWithPaper(Paper &paper);
+    int playWithScissor(Scissor &scissor);
+    int playWithSpock(Spock &spock);
+    int playWithLizard(Lizard &lizard);
 };
 
 
