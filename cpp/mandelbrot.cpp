@@ -9,31 +9,32 @@
 #include <thread>
 #include <future> // get value out of thread
 #include <vector>
+#include <random>
 using namespace std;
 using namespace std::chrono;
 
-int thread_number = 16;
-int base_pixel_number = 2048/16;
-int width  = base_pixel_number * thread_number;
+int thread_number = 8;
+int base_pixel_number = 2048 / (thread_number*2);
+int width = base_pixel_number * thread_number;
 int height = base_pixel_number * thread_number;
 double x_base_translation = 1.5;
 double y_base_translation = 0.5;
 int iteration_depth = 33;
 
 namespace RGB {
-  int R = 0;
-  int G = 22;
-  int B = 0;
+int R = 0;
+int G = 22;
+int B = 0;
 }
 
 std::string mandelbrot_file_name(int x) {
-  return "mandelbrot" + to_string(x / (width/thread_number)) + ".ppm";
+  return "mandelbrot" + to_string(x / (width / thread_number)) + ".not_ppm";
 }
 
 int value(int x, int y) {
   complex<double> point((double) x / width - x_base_translation, (double) y / height - y_base_translation);
-// we divide by the image dimensions to get values smaller than 1
-// then apply a translation
+  // we divide by the image dimensions to get values smaller than 1
+  // then apply a translation
   complex<double> z(0, 0);
   int nb_iter = 0;
   while (abs(z) < 2 && nb_iter <= iteration_depth) {
@@ -44,20 +45,19 @@ int value(int x, int y) {
   else return 0;
 }
 
-//std::thread thread_object(value, 1, 2);
-class thread_obj {
+
+class mandelbrot_partial_thread_obj {
  public:
-  void operator()(int starting_x, int x_amount, int thread_number, std::string file_name, std::promise<int> && p) {
+  void operator()(int starting_x, int x_amount, int thread_id, const std::string& file_name, std::promise<int> &&p) {
     ofstream my_Image(file_name);
     if (my_Image.is_open()) {
-      //my_Image << "P3\n" << x_amount << " " << height << " 255\n";
       int i;
       int j;
       for (i = starting_x; i < starting_x + x_amount - 1; i++) {
         for (j = 0; j < height; j++) {
           my_Image << value(i, j) << ' ' << RGB::G << ' ' << RGB::B << "\n";
           if (j == height / 2 && i % 100 == 0) {
-            cout << "thread " << thread_number << " in step " << i << " of " << starting_x + x_amount << endl;
+            cout << "thread " << thread_id << " in step " << i << " of " << starting_x + x_amount << endl;
           }
         }
       }
@@ -77,6 +77,7 @@ int main() {
     std::vector<std::promise<int>> promises;
     std::vector<std::future<int>> promise_future;
     std::vector<int> promise_answer;
+    std::vector<std::tuple<int, int>> lateral_values;
     int x_slice_size = width / thread_number;
     int temp_size = 0;
     for (int i = 0; i < thread_number; i++) {
@@ -87,66 +88,42 @@ int main() {
     }
 
     int temp_thread_id = 0;
-    for (auto &[starting_point, file_name, promise]: thread_start_data){
+    for (auto &[starting_point, file_name, promise]: thread_start_data) {
       promise_future.emplace_back(promise.get_future());
-      thread_array.emplace_back(thread(thread_obj(), starting_point, x_slice_size, temp_thread_id, file_name, std::move(promise)));
+      thread_array.emplace_back(thread(mandelbrot_partial_thread_obj(),
+                                       starting_point,
+                                       x_slice_size,
+                                       temp_thread_id,
+                                       file_name,
+                                       std::move(promise)));
       temp_thread_id++;
     }
-
-    std::vector<std::tuple<int, int>> lateral_values;
-
-
-
-//
-//    t.join();
-//    int i = f.get();
-
-
-
-
-
-//    std::string file_name0(mandelbrot_file_name(0));
-//    std::string file_name1(mandelbrot_file_name(500));
-//    std::string file_name2(mandelbrot_file_name(1000));
-//    std::string file_name3(mandelbrot_file_name(1500));
-
-    {
-//      thread_array.emplace_back(thread(thread_obj(), 0, 500, 0, file_name0));
-//      thread_array.emplace_back(thread(thread_obj(), 500, 500, 1, file_name1));
-//      thread_array.emplace_back(thread(thread_obj(), 1000, 500, 2, file_name2));
-//      thread_array.emplace_back(thread(thread_obj(), 1500, 500, 3, file_name3));
-    }
-    for (thread &thread_instance: thread_array) {
-      thread_instance.join();
-    }
-    std::string file_name("mandelbrot_final.ppm");
+    std::default_random_engine e((unsigned int)time(0));
+    int i = e();
+    std::string file_name("mandelbrot_final"+to_string(i)+".ppm");
     ofstream my_Image(file_name);
-
-    std::vector<std::ifstream> input_files;
-    for (auto &future: promise_future){
-      promise_answer.emplace_back(future.get());
-    }
-    for (auto &[starting_point, file_name, promise]: thread_start_data){
-      input_files.emplace_back(std::ifstream(file_name, std::ios_base::binary));
-    }
-    for (int i = 1; i < thread_number; i++){
-      if (std::get<0>(thread_start_data[i]) != promise_answer[i-1]+1){
-        cout << "no dieron los edges " << std::get<0>(thread_start_data[i]) << " "
-            << promise_answer[i-1] << " en el thread " << thread_number << endl;
-      }
-    }
     if (my_Image.is_open()) {
       my_Image << "P3\n" << width << " " << height << " 255\n";
-
-      for (auto &mandelbrot_partial_file: input_files) {
-        my_Image << mandelbrot_partial_file.rdbuf();
+      std::vector<std::ifstream> input_files;
+      for (int i = 0; i < thread_number; i++) {
+        thread_array[i].join();
+        promise_answer.emplace_back(promise_future[i].get());
+        auto temp_file = std::ifstream(std::get<1>(thread_start_data[i]), std::ios_base::binary);
+        my_Image << temp_file.rdbuf();
       }
     }
     my_Image.close();
-  }
-  else {
-//   initialize threads
-//  thread th2(thread_obj(), 3);
+
+    // edge check
+    for (int i = 1; i < thread_number; i++) {
+      if (std::get<0>(thread_start_data[i]) != promise_answer[i - 1] + 1) {
+        cout << "edges didnt match " << std::get<0>(thread_start_data[i]) << " "
+             << promise_answer[i - 1] << " in thread " << thread_number << endl;
+      }
+    }
+
+    cout << "last edge was " << promise_answer[thread_number - 1] << endl;
+  } else {
     ofstream my_Image("mandelbrot.ppm");
     if (my_Image.is_open()) {
       my_Image << "P3\n" << width << " " << height << " 255\n";
@@ -175,5 +152,5 @@ int main() {
   cout << "Time taken by function: "
        << duration_seconds.count() << " seconds" << endl;
 
-  return 1;
+  return 0;
 }
