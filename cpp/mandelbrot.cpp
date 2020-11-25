@@ -14,17 +14,22 @@ using namespace std;
 using namespace std::chrono;
 
 int thread_number = 8;
-int base_pixel_number = 2048 / (thread_number*2);
+// It's easier to not check border conditions and just create sizes of 2 to some power
+int base_pixel_number = 2048*2 / (thread_number*2);
 int width = base_pixel_number * thread_number;
 int height = base_pixel_number * thread_number;
 double x_base_translation = 1.5;
 double y_base_translation = 0.5;
-int iteration_depth = 33;
 
+// this will tell us how accurate our representation is. after going in too deep (in terms of pixels)
+// there will be lots of black due to them not going deep enough (in terms of iterations)
+int iteration_depth = 50;
+
+// Adjust G and B to get a different output color
 namespace RGB {
 int R = 0;
-int G = 22;
-int B = 0;
+int G = 33;
+int B = 55;
 }
 
 std::string mandelbrot_file_name(int x) {
@@ -49,27 +54,31 @@ int value(int x, int y) {
 class mandelbrot_partial_thread_obj {
  public:
   void operator()(int starting_x, int x_amount, int thread_id, const std::string& file_name, std::promise<int> &&p) {
-    ofstream my_Image(file_name);
-    if (my_Image.is_open()) {
+    ofstream partial_mandelbrot_file(file_name);
+    if (partial_mandelbrot_file.is_open()) {
       int i;
       int j;
+      int value_here;
       for (i = starting_x; i < starting_x + x_amount - 1; i++) {
         for (j = 0; j < height; j++) {
-          my_Image << value(i, j) << ' ' << RGB::G << ' ' << RGB::B << "\n";
+          value_here = value(i,j);
+          partial_mandelbrot_file << value_here << ' ' << RGB::G << ' ' << int(RGB::B + value_here/3) << "\n";
           if (j == height / 2 && i % 100 == 0) {
             cout << "thread " << thread_id << " in step " << i << " of " << starting_x + x_amount << endl;
           }
         }
       }
-      my_Image.close();
+      partial_mandelbrot_file.close();
       p.set_value(i);
     } else cout << "Could not open the file " << file_name << endl;
+    cout << "Thread " << thread_id << " finished" << endl;
   }
 };
 
 int main() {
   auto start = high_resolution_clock::now();
   bool thread_mode = true;
+  //thread_mode = false;
   if (thread_mode) {
     std::vector<std::string> file_name_vector;
     std::vector<std::tuple<int, std::string, std::promise<int>>> thread_start_data;
@@ -81,6 +90,9 @@ int main() {
     int x_slice_size = width / thread_number;
     int temp_size = 0;
     for (int i = 0; i < thread_number; i++) {
+      // The actual promise value wasn't very useful, it used to check that borders matched
+      // but now it's not needed due to using powers of 2 pixels.
+      // In any case, promises are what you use to get some value returned to you from the thread when it finished.
       std::promise<int> p;
       thread_start_data.emplace_back(std::make_tuple(temp_size, mandelbrot_file_name(temp_size), std::move(p)));
       temp_size += x_slice_size;
@@ -98,9 +110,9 @@ int main() {
                                        std::move(promise)));
       temp_thread_id++;
     }
-    std::default_random_engine e((unsigned int)time(0));
-    int i = e();
-    std::string file_name("mandelbrot_final"+to_string(i)+".ppm");
+    std::default_random_engine e((unsigned int) time(0));
+    int int_suffix = e();
+    std::string file_name("mandelbrot_final" + to_string(int_suffix) + ".ppm");
     ofstream my_Image(file_name);
     if (my_Image.is_open()) {
       my_Image << "P3\n" << width << " " << height << " 255\n";
@@ -121,8 +133,6 @@ int main() {
              << promise_answer[i - 1] << " in thread " << thread_number << endl;
       }
     }
-
-    cout << "last edge was " << promise_answer[thread_number - 1] << endl;
   } else {
     ofstream my_Image("mandelbrot.ppm");
     if (my_Image.is_open()) {

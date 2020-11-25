@@ -6,3 +6,4 @@ set(SOURCE_FILES main.cpp Cachipun/Hand.h Cachipun/Hand.cpp Tree/TreeNode.h Tree
 set(HEADER_FILES Tree/TreeNode.h)
 add_executable(cpp ${SOURCE_FILES})
 include_directories(Cachipun Tree)
+SET(CMAKE_CXX_FLAGS "-lpthread")
